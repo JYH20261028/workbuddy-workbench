@@ -1,0 +1,10 @@
+{
+  "name": "personal-workbench",
+  "version": "1.0.0",
+  "private": true,
+  "description": "个人工作台 · 跨设备同步后端",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
