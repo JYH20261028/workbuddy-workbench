@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: workbuddy-workbench
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    healthCheckPath: /api/summary
+    envVars:
+      - key: PORT
+        value: 10000
