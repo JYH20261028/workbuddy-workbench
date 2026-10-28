@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>个人工作台 · WorkBuddy</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1f2733; --sub:#6b7785; --line:#e7ebf1;
+    --brand:#2f6df0; --brand-soft:#eaf1ff; --green:#19b36b; --green-soft:#e7f8ef;
+    --amber:#f0a020; --amber-soft:#fdf3e2; --red:#e5484d; --red-soft:#fdecec;
+    --purple:#7c5cff; --purple-soft:#efeaff; --radius:16px; --shadow:0 4px 18px rgba(31,39,51,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;padding-bottom:78px}
+  .topbar{position:sticky;top:0;z-index:20;background:rgba(244,246,250,.92);backdrop-filter:blur(8px);
+    padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+  .topbar h1{font-size:18px;margin:0;display:flex;align-items:center;gap:8px}
+  .topbar .date{font-size:12px;color:var(--sub);margin-top:3px}
+  .topbar .tools{position:absolute;right:14px;top:14px;display:flex;gap:8px}
+  .icon-btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;
+    font-size:12px;color:var(--sub);cursor:pointer}
+  .icon-btn:active{transform:scale(.96)}
+
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px 2px;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;padding:8px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);
+    font-size:13px;color:var(--sub);cursor:pointer;white-space:nowrap}
+  .tab.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+  .page{display:none;padding:14px;max-width:880px;margin:0 auto}
+  .page.active{display:block}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+  .card h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .card h2 .dot{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+  .sub{color:var(--sub);font-size:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  @media(max-width:560px){.grid3{grid-template-columns:1fr 1fr}}
+
+  .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .kv:last-child{border-bottom:none}
+  .kv b{font-weight:600}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600}
+  .p-green{background:var(--green-soft);color:var(--green)}
+  .p-blue{background:var(--brand-soft);color:var(--brand)}
+  .p-amber{background:var(--amber-soft);color:var(--amber)}
+  .p-red{background:var(--red-soft);color:var(--red)}
+  .p-purple{background:var(--purple-soft);color:var(--purple)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+  th{color:var(--sub);font-weight:600}
+
+  /* Calendar */
+  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .cal-head .m{font-size:16px;font-weight:600}
+  .nav{display:flex;gap:6px}
+  .nav button{border:1px solid var(--line);background:var(--card);border-radius:8px;width:32px;height:32px;font-size:16px;cursor:pointer}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--sub);margin-bottom:8px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .weekrow,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .weekrow div{text-align:center;font-size:12px;color:var(--sub);padding:4px 0}
+  .day{aspect-ratio:1/1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:13px;cursor:pointer;border:1px solid transparent;background:var(--card);position:relative}
+  .day .t{font-size:9px;margin-top:1px;color:var(--sub)}
+  .day.work{background:#fff}
+  .day.rest{background:#f1f4f8;color:var(--sub)}
+  .day.holiday{background:var(--red-soft);color:var(--red)}
+  .day.makeup{background:var(--amber-soft);color:var(--amber)}
+  .day.today{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+  .day.dim{color:#cdd3db}
+  #dayDetail{font-size:13px}
+
+  /* Todo */
+  .add-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .add-row input,.add-row select{flex:1;min-width:120px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;background:#fff}
+  .btn{border:none;border-radius:10px;padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;background:var(--brand);color:#fff}
+  .btn:active{transform:scale(.97)}
+  .btn.ghost{background:var(--brand-soft);color:var(--brand)}
+  .btn.green{background:var(--green);color:#fff}
+  .todo{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:#fff}
+  .todo .chk{width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+  .todo.done .chk{background:var(--green);border-color:var(--green)}
+  .todo.done .txt{text-decoration:line-through;color:var(--sub)}
+  .todo .txt{flex:1;font-size:14px}
+  .todo .meta{font-size:11px;color:var(--sub)}
+  .todo .del{color:var(--red);cursor:pointer;font-size:18px;padding:0 4px}
+  .sec-title{font-size:13px;color:var(--sub);margin:14px 0 8px;font-weight:600}
+  textarea{border:1px solid var(--line);border-radius:12px;padding:11px;width:100%;font-size:14px;font-family:inherit;resize:vertical;background:#fff}
+
+  /* English */
+  .en-card{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;background:#fff}
+  .en-card .en{font-size:16px;font-weight:600;color:var(--brand)}
+  .en-card .zh{font-size:13px;color:var(--ink);margin-top:3px}
+  .en-card .ex{font-size:12px;color:var(--sub);margin-top:6px;font-style:italic}
+  .en-card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .streak{font-size:13px;color:var(--sub)}
+  .streak b{color:var(--green);font-size:16px}
+
+  /* Water */
+  .water-ring{display:flex;justify-content:center;margin:6px 0 14px}
+  .ring{position:relative;width:180px;height:180px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .big{font-size:30px;font-weight:700;color:var(--brand)}
+  .ring .small{font-size:12px;color:var(--sub)}
+  .quick{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .qbtn{flex:1;min-width:90px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;text-align:center;cursor:pointer}
+  .qbtn:active{transform:scale(.97)}
+  .qbtn .n{font-size:18px;font-weight:700;color:var(--brand)}
+  .qbtn .l{font-size:11px;color:var(--sub)}
+  .reminder{background:var(--brand-soft);border-radius:12px;padding:12px;font-size:13px;color:var(--brand);display:flex;gap:8px;align-items:center}
+
+  .bottombar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    display:flex;z-index:30}
+  .bottombar a{flex:1;text-align:center;padding:8px 2px;font-size:11px;color:var(--sub);cursor:pointer;text-decoration:none}
+  .bottombar a .ic{font-size:18px;display:block;margin-bottom:2px}
+  .bottombar a.active{color:var(--brand)}
+  .fab{position:fixed;right:16px;bottom:90px;width:52px;height:52px;border-radius:50%;background:var(--brand);color:#fff;
+    font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(47,109,240,.4);cursor:pointer;z-index:40}
+  .fab:active{transform:scale(.94)}
+  .fab-menu{position:absolute;right:0;bottom:62px;background:#fff;border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);overflow:hidden;width:132px}
+  .fab-item{padding:11px 14px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line);white-space:nowrap}
+  .fab-item:last-child{border-bottom:none}
+  .fab-item:active{background:var(--brand-soft)}
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1f2733;color:#fff;
+    padding:9px 16px;border-radius:999px;font-size:13px;opacity:0;transition:.25s;z-index:50;pointer-events:none}
+  .toast.show{opacity:1}
+  .empty{color:var(--sub);font-size:13px;text-align:center;padding:18px 0}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🌸 个人工作台</h1>
+  <div class="date" id="topDate"></div>
+  <div class="tools">
+    <span class="icon-btn" id="syncStat" title="跨设备同步状态">⚪ 本地</span>
+    <span class="icon-btn" onclick="linkWorkspace()">🔗 关联</span>
+    <span class="icon-btn" onclick="exportData()">导出</span>
+    <span class="icon-btn" onclick="document.getElementById('imp').click()">导入</span>
+    <input type="file" id="imp" class="hidden" accept="application/json" onchange="importData(event)">
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-page="home">🏠 首页</div>
+  <div class="tab" data-page="hr">📋 政策速递</div>
+  <div class="tab" data-page="quick">📌 每日速查</div>
+  <div class="tab" data-page="cal">📅 日历</div>
+  <div class="tab" data-page="todo">✅ 待办日志</div>
+  <div class="tab" data-page="week">📆 周计划</div>
+  <div class="tab" data-page="en">🔤 每日英语</div>
+  <div class="tab" data-page="water">💧 喝水提醒</div>
+</div>
+
+<!-- ============ HOME ============ -->
+<div class="page active" id="page-home">
+  <div class="card">
+    <h2><span class="dot"></span><span id="homeGreet"></span></h2>
+    <div class="sub">工作台总览 · 一屏掌握今日重点</div>
+  </div>
+  <div class="grid2">
+    <div class="card" style="margin:0;cursor:pointer" onclick="switchPage('todo')">
+      <div class="sub">今日待办</div>
+      <div id="homeTodo" style="font-size:15px;font-weight:600;margin-top:4px"></div>
+    </div>
+    <div class="card" style="margin:0;cursor:pointer" onclick="switchPage('water')">
+      <div class="sub">今日饮水</div>
+      <div id="homeWater" style="font-size:15px;font-weight:600;margin-top:4px"></div>
+    </div>
+    <div class="card" style="margin:0;cursor:pointer" onclick="switchPage('week')">
+      <div class="sub">本周计划</div>
+      <div id="homeWeek" style="font-size:15px;font-weight:600;margin-top:4px"></div>
+      <div style="height:6px;background:var(--line);border-radius:3px;margin-top:6px;overflow:hidden"><div id="homeWeekBar" style="height:100%;background:var(--green);width:0%"></div></div>
+    </div>
+    <div class="card" style="margin:0;cursor:pointer" onclick="switchPage('hr')">
+      <div class="sub">政策速递</div>
+      <div id="homePolicy" style="font-size:15px;font-weight:600;margin-top:4px"></div>
+    </div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchPage('en')">
+    <h2><span class="dot"></span>每日英语 <span id="homeEn" style="margin-left:auto;font-size:12px;color:var(--green);font-weight:600"></span></h2>
+    <div id="homeEnList"></div>
+  </div>
+  <div class="card" style="cursor:pointer" onclick="switchPage('todo')">
+    <h2><span class="dot"></span>今日待办速览</h2>
+    <div id="homeTodoList"></div>
+  </div>
+</div>
+
+<!-- ============ HR ============ -->
+<div class="page" id="page-hr">
+  <div class="card">
+    <h2><span class="dot"></span>📰 政策速递 · 每日更新</h2>
+    <div id="policyBanner" class="reminder" style="margin-bottom:10px"></div>
+    <div id="policyFeed"></div>
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;color:var(--brand);font-size:13px">＋ 添加一条新政策</summary>
+      <div class="add-row" style="margin-top:8px">
+        <input id="pDate" type="date" style="min-width:120px">
+        <input id="pTitle" placeholder="政策标题">
+      </div>
+      <div class="add-row">
+        <input id="pSummary" placeholder="要点摘要">
+        <input id="pSource" placeholder="来源">
+        <select id="pTag"><option value="普通">普通</option><option value="重要">重要</option><option value="新">新</option></select>
+        <button class="btn" onclick="addPolicy()">添加</button>
+      </div>
+    </details>
+  </div>
+  <div class="card">
+    <h2><span class="dot"></span>北京市人力资源政策要点（2026年度）</h2>
+    <div class="grid2">
+      <div class="card" style="margin:0;box-shadow:none;border:1px solid var(--line)">
+        <div class="sub">月最低工资标准</div>
+        <div style="font-size:24px;font-weight:700;color:var(--green)">¥2540</div>
+        <span class="pill p-green">全国前列</span>
+      </div>
+      <div class="card" style="margin:0;box-shadow:none;border:1px solid var(--line)">
+        <div class="sub">小时最低工资</div>
+        <div style="font-size:24px;font-weight:700;color:var(--green)">¥27.7</div>
+        <span class="pill p-green">全国最高</span>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:10px">数据截至2026年，北京市人力资源和社会保障局发布，适用于全市用人单位。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>社会保险缴费（2026年7月起执行）</h2>
+    <div class="kv"><span>缴费基数下限</span><b>¥7270 / 月</b></div>
+    <div class="kv"><span>缴费基数上限</span><b>¥36348 / 月</b></div>
+    <div class="kv"><span>全口径社平工资</span><b>¥12116 / 月</b></div>
+    <table style="margin-top:10px">
+      <tr><th>险种</th><th>单位</th><th>个人</th></tr>
+      <tr><td>养老保险</td><td>16%</td><td>8%</td></tr>
+      <tr><td>医疗保险（含生育）</td><td>9.8%</td><td>2% + 3元</td></tr>
+      <tr><td>失业保险</td><td>0.5%</td><td>0.5%</td></tr>
+      <tr><td>工伤保险</td><td>0.2%–1.9%</td><td>个人不缴</td></tr>
+      <tr><td>生育保险</td><td colspan="2">已并入医疗保险，不单缴</td></tr>
+    </table>
+    <div class="sub" style="margin-top:8px">按最低基数7270元估算：个人每月约 <b>¥766</b>，单位每月约 ¥1927–2050。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>住房公积金（2026.7.1 – 2027.6.30）</h2>
+    <div class="kv"><span>缴存比例</span><b>5% – 12%</b></div>
+    <div class="kv"><span>月缴存基数上限</span><b>¥36348</b></div>
+    <div class="kv"><span>月缴存基数下限</span><b>¥2540</b></div>
+    <div class="kv"><span>灵活就业医保（月缴）</span><b>¥593.68</b></div>
+    <div class="sub" style="margin-top:8px">单位可在5%–12%区间内自主确定缴存比例，按本人上年月均工资核定，低于下限按下限、高于上限按上限。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>个人所得税（综合所得）</h2>
+    <div class="kv"><span>起征点</span><b>¥5000 / 月（6万 / 年）</b></div>
+    <table style="margin-top:8px">
+      <tr><th>级数</th><th>全年应纳税所得额</th><th>税率</th><th>速算扣除</th></tr>
+      <tr><td>1</td><td>≤ 3.6万</td><td>3%</td><td>0</td></tr>
+      <tr><td>2</td><td>3.6万–14.4万</td><td>10%</td><td>2520</td></tr>
+      <tr><td>3</td><td>14.4万–30万</td><td>20%</td><td>16920</td></tr>
+      <tr><td>4</td><td>30万–42万</td><td>25%</td><td>31920</td></tr>
+      <tr><td>5</td><td>42万–66万</td><td>30%</td><td>52920</td></tr>
+      <tr><td>6</td><td>66万–96万</td><td>35%</td><td>85920</td></tr>
+      <tr><td>7</td><td>&gt; 96万</td><td>45%</td><td>181920</td></tr>
+    </table>
+    <div class="sub" style="margin-top:8px">专项附加扣除含：子女教育、继续教育、大病医疗、住房贷款利息、住房租金、赡养老人、3岁以下婴幼儿照护。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>2026 法定节假日一览</h2>
+    <table>
+      <tr><th>节日</th><th>放假</th><th>天数</th><th>调休上班</th></tr>
+      <tr><td>元旦</td><td>1/1–1/3</td><td>3</td><td>1/4（周日）</td></tr>
+      <tr><td>春节</td><td>2/15–2/23</td><td>9</td><td>2/14、2/28（周六）</td></tr>
+      <tr><td>清明节</td><td>4/4–4/6</td><td>3</td><td>无</td></tr>
+      <tr><td>劳动节</td><td>5/1–5/5</td><td>5</td><td>5/9（周六）</td></tr>
+      <tr><td>端午节</td><td>6/19–6/21</td><td>3</td><td>无</td></tr>
+      <tr><td>中秋节</td><td>9/25–9/27</td><td>3</td><td>无</td></tr>
+      <tr><td>国庆节</td><td>10/1–10/7</td><td>7</td><td>9/20（周日）、10/10（周六）</td></tr>
+    </table>
+    <div class="sub" style="margin-top:8px">来源：国务院办公厅《关于2026年部分节假日安排的通知》（国办发明电〔2025〕7号）。</div>
+  </div>
+</div>
+
+<!-- ============ CALENDAR ============ -->
+<div class="page" id="page-cal">
+  <div class="card">
+    <div class="cal-head">
+      <div class="m" id="calMonth"></div>
+      <div class="nav">
+        <button onclick="shiftMonth(-1)">‹</button>
+        <button onclick="goToday()">今</button>
+        <button onclick="shiftMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i style="background:#fff;border:1px solid var(--line)"></i>工作日</span>
+      <span><i style="background:#f1f4f8"></i>周末休息</span>
+      <span><i style="background:var(--red-soft)"></i>法定节假日</span>
+      <span><i style="background:var(--amber-soft)"></i>调休上班</span>
+    </div>
+    <div class="weekrow"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+    <div class="days" id="days"></div>
+  </div>
+  <div class="card" id="dayDetailCard">
+    <h2><span class="dot"></span>当日详情</h2>
+    <div id="dayDetail">点击上方日期查看详情。</div>
+  </div>
+</div>
+
+<!-- ============ TODO ============ -->
+<div class="page" id="page-todo">
+  <div class="card">
+    <h2><span class="dot"></span>今日待办</h2>
+    <div class="add-row">
+      <input id="todoInput" placeholder="输入待办事项…" onkeydown="if(event.key==='Enter')addTodo()">
+      <select id="todoPri">
+        <option value="普通">普通</option>
+        <option value="重要">重要</option>
+        <option value="紧急">紧急</option>
+      </select>
+      <button class="btn" onclick="addTodo()">添加</button>
+    </div>
+    <div class="sec-title">进行中</div>
+    <div id="todoActive"></div>
+    <div class="sec-title">已完成</div>
+    <div id="todoDone"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>工作日志（<span id="logDate"></span>）</h2>
+    <textarea id="logInput" rows="4" placeholder="记录今天完成的工作、进展与思考…"></textarea>
+    <div style="margin-top:8px;text-align:right">
+      <button class="btn green" onclick="saveLog()">保存日志</button>
+    </div>
+    <div id="logSaved" class="sub" style="margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- ============ WEEK ============ -->
+<div class="page" id="page-week">
+  <div class="card">
+    <h2><span class="dot"></span>本周计划（<span id="weekRange"></span>）</h2>
+    <div class="add-row">
+      <input id="weekPlanInput" placeholder="输入本周计划 / 目标…" onkeydown="if(event.key==='Enter')addWeekPlan()">
+      <button class="btn" onclick="addWeekPlan()">添加</button>
+    </div>
+    <div id="weekPlanList"></div>
+    <div class="sub" id="weekPlanStat" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>周工作总结 · 自动生成</h2>
+    <div class="reminder" style="margin-bottom:10px">🤖 基于本周「工作日志 + 待办完成记录 + 周计划」自动汇总，可编辑后复制留存。</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn" onclick="genWeekSummary()">🔄 一键生成</button>
+      <button class="btn ghost" onclick="copyWeekSummary()">📋 复制</button>
+      <button class="btn green" onclick="saveWeekReport()">💾 保存周报</button>
+    </div>
+    <textarea id="weekSummary" rows="15" placeholder="点击「一键生成」自动汇总本周工作…"></textarea>
+    <div id="weekSaved" class="sub" style="margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="dot"></span>历史周报</h2>
+    <div id="weekHistory"><span class="sub">暂无历史周报，生成并保存后会出现在这里。</span></div>
+  </div>
+</div>
+
+<!-- ============ ENGLISH ============ -->
+<div class="page" id="page-en">
+  <div class="card">
+    <h2><span class="dot"></span>每日英语 · 循序渐进</h2>
+    <div class="streak">已坚持学习 <b id="enStreak">0</b> 天 · 累计积累 <b id="enCount">0</b> 条</div>
+  </div>
+  <div id="enToday"></div>
+  <div class="card">
+    <h2><span class="dot"></span>我的词库</h2>
+    <div id="enLib" class="sub">尚未积累，今天开始学习吧！</div>
+  </div>
+</div>
+
+<!-- ============ WATER ============ -->
+<div class="page" id="page-water">
+  <div class="card">
+    <h2><span class="dot"></span>饮水提醒</h2>
+    <div class="add-row" style="align-items:center">
+      <span class="sub">每</span>
+      <input id="remindInterval" type="number" value="60" style="max-width:80px">
+      <span class="sub">分钟提醒一次（后台标签页也会提醒）</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn green" onclick="startWaterReminder()">🔔 开启提醒</button>
+      <button class="btn" onclick="stopWaterReminder()" style="background:var(--red)">停止</button>
+    </div>
+    <div id="remindStatus" class="sub" style="margin-top:6px"></div>
+  </div>
+  <div class="card">
+    <h2><span class="dot"></span>今日饮水</h2>
+    <div class="water-ring">
+      <div class="ring">
+        <svg width="180" height="180">
+          <circle cx="90" cy="90" r="78" stroke="#e7ebf1" stroke-width="14" fill="none"></circle>
+          <circle id="ringFg" cx="90" cy="90" r="78" stroke="#2f6df0" stroke-width="14" fill="none"
+            stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"></circle>
+        </svg>
+        <div class="txt">
+          <div class="big" id="waterNow">0</div>
+          <div class="small">/ 1500 ml 目标</div>
+        </div>
+      </div>
+    </div>
+    <div class="quick">
+      <div class="qbtn" onclick="addWater(200)"><div class="n">+200</div><div class="l">一杯水</div></div>
+      <div class="qbtn" onclick="addWater(500)"><div class="n">+500</div><div class="l">一瓶水</div></div>
+      <div class="qbtn" onclick="addWater(350)"><div class="n">+350</div><div class="l">一杯茶</div></div>
+    </div>
+    <div class="add-row">
+      <input id="waterCustom" type="number" placeholder="自定义 ml" style="min-width:100px">
+      <button class="btn ghost" onclick="addWaterCustom()">添加</button>
+      <button class="btn" onclick="resetWater()" style="background:var(--red)">重置</button>
+    </div>
+    <div class="reminder">💡 健康建议：每天饮水不低于 <b>1500ml</b>，少量多次，上午多补、睡前少饮。</div>
+  </div>
+  <div class="card">
+    <h2><span class="dot"></span>近7天饮水记录</h2>
+    <div id="waterWeek" class="grid3"></div>
+  </div>
+</div>
+
+<!-- ============ 每日速查 ============ -->
+<div class="page" id="page-quick">
+  <div class="card">
+    <h2><span class="dot"></span>每日速查 · 关键数据一览</h2>
+    <div class="sub" id="quickDate"></div>
+  </div>
+  <div class="card">
+    <h2><span class="dot"></span>最低工资（北京）</h2>
+    <div class="grid2">
+      <div style="text-align:center"><div class="sub">月</div><div style="font-size:24px;font-weight:700;color:var(--green)">¥2540</div></div>
+      <div style="text-align:center"><div class="sub">小时</div><div style="font-size:24px;font-weight:700;color:var(--green)">¥27.7</div></div>
+    </div>
+    <div class="sub" style="margin-top:8px">全国小时最低工资最高档，适用于全市用人单位。</div>
+  </div>
+  <div class="card">
+    <h2><span class="dot"></span>社保缴费（2026.7 起执行）</h2>
+    <div class="kv"><span>缴费基数下限</span><b>¥7270 / 月</b></div>
+    <div class="kv"><span>缴费基数上限</span><b>¥36348 / 月</b></div>
+    <table style="margin-top:8px">
+      <tr><th>险种</th><th>单位</th><th>个人</th></tr>
+      <tr><td>养老</td><td>16%</td><td>8%</td></tr>
+      <tr><td>医疗(含生育)</td><td>9.8%</td><td>2% + 3元</td></tr>
+      <tr><td>失业</td><td>0.5%</td><td>0.5%</td></tr>
+      <tr><td>工伤</td><td>0.2%–1.9%</td><td>个人不缴</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2><span class="dot"></span>住房公积金（2026.7–2027.6）</h2>
+    <div class="kv"><span>缴存比例</span><b>5% – 12%</b></div>
+    <div class="kv"><span>基数上限</span><b>¥36348</b></div>
+    <div class="kv"><span>基数下限</span><b>¥2540</b></div>
+  </div>
+  <div class="card">
+    <h2><span class="dot"></span>个税（综合所得）</h2>
+    <div class="kv"><span>起征点</span><b>¥5000 / 月（6万/年）</b></div>
+    <table style="margin-top:8px">
+      <tr><th>级数</th><th>全年应纳税所得额</th><th>税率</th></tr>
+      <tr><td>1</td><td>≤ 3.6万</td><td>3%</td></tr>
+      <tr><td>2</td><td>3.6万–14.4万</td><td>10%</td></tr>
+      <tr><td>3</td><td>14.4万–30万</td><td>20%</td></tr>
+      <tr><td>4</td><td>30万–42万</td><td>25%</td></tr>
+      <tr><td>5</td><td>42万–66万</td><td>30%</td></tr>
+      <tr><td>6</td><td>66万–96万</td><td>35%</td></tr>
+      <tr><td>7</td><td>&gt; 96万</td><td>45%</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="fab" onclick="toggleFab()">＋
+  <div class="fab-menu hidden" id="fabMenu">
+    <div class="fab-item" onclick="event.stopPropagation();quickTodo()">📝 记待办</div>
+    <div class="fab-item" onclick="event.stopPropagation();switchPage('todo');setTimeout(()=>$('#logInput').focus(),60)">📒 写日志</div>
+    <div class="fab-item" onclick="event.stopPropagation();switchPage('week');setTimeout(()=>$('#weekPlanInput').focus(),60)">🎯 周计划</div>
+    <div class="fab-item" onclick="event.stopPropagation();addWater(200);toast('+200ml 💧')">💧 喝水+200</div>
+  </div>
+</div>
+
+<div class="bottombar" id="bottombar">
+  <a class="active" data-page="home"><span class="ic">🏠</span>首页</a>
+  <a data-page="hr"><span class="ic">📋</span>政策</a>
+  <a data-page="quick"><span class="ic">📌</span>速查</a>
+  <a data-page="cal"><span class="ic">📅</span>日历</a>
+  <a data-page="todo"><span class="ic">✅</span>待办</a>
+  <a data-page="week"><span class="ic">📆</span>周计划</a>
+  <a data-page="en"><span class="ic">🔤</span>英语</a>
+  <a data-page="water"><span class="ic">💧</span>喝水</a>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 登录弹窗（仅当配置了远程后端时出现） -->
+<div id="loginMask" class="login-mask" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">🌸</div>
+    <h3>登录个人工作台</h3>
+    <p class="login-sub">输入访问口令，在手机 / 电脑间同步你的数据</p>
+    <input id="loginPass" type="password" placeholder="访问口令" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button onclick="doLogin()">登 录</button>
+    <div id="loginErr" class="login-err"></div>
+  </div>
+</div>
+<style>
+.login-mask{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px)}
+.login-card{background:#fff;border-radius:18px;padding:28px 24px;width:300px;max-width:88vw;box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center}
+.login-card h3{margin:6px 0 4px;font-size:18px;color:#0f172a}
+.login-sub{font-size:12px;color:#64748b;margin:0 0 16px}
+.login-card input{width:100%;padding:11px 12px;border:1px solid #d8dee9;border-radius:10px;font-size:15px;margin-bottom:12px;box-sizing:border-box;outline:none}
+.login-card input:focus{border-color:#7c5cff}
+.login-card button{width:100%;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#7c5cff,#4f8cff);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.login-card button:active{opacity:.9}
+.login-err{color:#e11d48;font-size:12px;min-height:16px;margin-top:8px}
+.login-logo{font-size:32px}
+</style>
+
+<script>
+/* ---------- 工具 ---------- */
+const $ = s => document.querySelector(s);
+const todayStr = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const dayKey = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const store = {
+  get(k,def){ try{const v=localStorage.getItem('wb_'+k);return v?JSON.parse(v):def;}catch(e){return def;} },
+  set(k,v){ localStorage.setItem('wb_'+k, JSON.stringify(v)); }
+};
+const _storeSet=store.set.bind(store);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+/* ====== 跨设备同步后端 ====== */
+let API_BASE = (location.protocol==='http:'||location.protocol==='https:') ? '' : null; // 同源 API；可通过 sync-config.json 指定独立后端
+let BACKEND_OK=false;
+function buildModules(){
+  const mt=store.get('modtimes',{}); const mods={};
+  const put=(name,value)=>{ mods[name]={updatedAt:mt[name]||0, value}; };
+  put('todos', store.get('todos',[]));
+  put('water', store.get('water',{}));
+  put('en_learned', store.get('en_learned',[]));
+  put('en_days', store.get('en_days',[]));
+  put('policy_user', store.get('policy_user',[]));
+  put('policy_read', store.get('policy_read',{}));
+  const logs={}; const wps={}; const wrs={};
+  const ls=localStorage;
+  for(let i=0;i<ls.length;i++){const k=ls.key(i);
+    if(k.startsWith('wb_log_')) logs[k.slice(6)]=JSON.parse(ls.getItem(k));
+    if(k.startsWith('wb_weekplan_')) wps[k.slice(12)]=JSON.parse(ls.getItem(k));
+    if(k.startsWith('wb_weekreport_')) wrs[k.slice(14)]=JSON.parse(ls.getItem(k));
+  }
+  put('logs', logs); put('weekplans', wps); put('weekreports', wrs);
+  return mods;
+}
+async function pushModules(){
+  if(!BACKEND_OK) return;
+  try{
+    const tok=localStorage.getItem('wb_token')||'';
+    const res=await fetch(API_BASE+'/api/state',{method:'POST',headers:{'Content-Type':'application/json','x-wb-token':tok},
+      body:JSON.stringify({modules:buildModules()})});
+    if(res.ok){ const s=await res.json(); applyTimestamps(s.modules); }
+    else if(res.status===401){ showLogin(); }
+  }catch(e){ BACKEND_OK=false; }
+}
+function applyTimestamps(mods){
+  if(!mods) return;
+  const mt=store.get('modtimes',{});
+  for(const k in mods){ if(mods[k]&&typeof mods[k].updatedAt==='number') mt[k]=mods[k].updatedAt; }
+  _storeSet('modtimes', mt);
+}
+async function pullModules(){
+  if(!BACKEND_OK) return;
+  try{
+    const tok=localStorage.getItem('wb_token')||'';
+    const res=await fetch(API_BASE+'/api/state',{headers:{'x-wb-token':tok}}); if(!res.ok) return;
+    const s=await res.json(); const mods=s.modules||{}; const mt=store.get('modtimes',{});
+    let changed=false;
+    for(const k in mods){ const m=mods[k]; if(!m) continue;
+      if((m.updatedAt||0) > (mt[k]||0)){ applyModule(k,m.value); mt[k]=m.updatedAt; changed=true; } }
+    _storeSet('modtimes', mt);
+    if(changed) rerenderAll();
+  }catch(e){ BACKEND_OK=false; }
+}
+function applyModule(k,val){
+  if(k==='logs'){ for(const d in val) _storeSet('log_'+d, val[d]); }
+  else if(k==='weekplans'){ for(const w in val) _storeSet('weekplan_'+w, val[w]); }
+  else if(k==='weekreports'){ for(const w in val) _storeSet('weekreport_'+w, val[w]); }
+  else _storeSet(k, val);
+}
+function rerenderAll(){
+  todos=store.get('todos',[]);
+  renderTodos(); renderPolicy(); renderHome(); renderWater(); renderEnglish(); renderWeek(); renderCalendar();
+}
+let _syncTimer=null;
+function _scheduleSync(){
+  if(_syncTimer) clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>{ _writeWorkspace().catch(()=>{}); pushModules(); }, 400);
+}
+store.set=function(k,v){
+  _storeSet(k,v);
+  const mt=store.get('modtimes',{});
+  const mod = k.startsWith('log_')?'logs' : k.startsWith('weekplan_')?'weekplans' : k.startsWith('weekreport_')?'weekreports' : k;
+  mt[mod]=Date.now(); _storeSet('modtimes', mt);
+  _scheduleSync();
+};
+let _pollTimer=null;
+async function initBackend(){
+  const stat=$('#syncStat');
+  if(API_BASE===null){ BACKEND_OK=false; if(stat)stat.textContent='⚪ 本地'; return; }
+  // 读取 sync-config.json：若配置了独立后端地址，则启用远程登录+同步
+  let configured=false;
+  try{
+    const c=await fetch('sync-config.json',{cache:'no-store'});
+    if(c.ok){ const j=await c.json(); if(j&&j.apiBase&&j.apiBase.trim()){ API_BASE=j.apiBase.trim().replace(/\/$/,''); configured=true; } }
+  }catch(e){}
+  if(API_BASE===''){ BACKEND_OK=false; if(stat)stat.textContent='⚪ 本地'; return; } // 静态托管且无配置后端
+  if(!configured){ BACKEND_OK=false; return; }
+  // 已配置远程后端 -> 需要登录
+  const tok=localStorage.getItem('wb_token')||'';
+  if(!tok){ showLogin(); return; }
+  try{
+    const res=await fetch(API_BASE+'/api/state',{method:'GET',headers:{'x-wb-token':tok}});
+    if(res.status===401){ showLogin(); return; }
+    if(res.ok){ BACKEND_OK=true; if(stat){stat.textContent='🟢 已登录同步'; stat.style.cursor='pointer'; stat.title='点击退出登录'; stat.onclick=()=>{localStorage.removeItem('wb_token');location.reload();};} await pullModules(); }
+  }catch(e){ BACKEND_OK=false; }
+  if(BACKEND_OK && !_pollTimer) _pollTimer=setInterval(pullModules, 15000);
+}
+function showLogin(){ const m=$('#loginMask'); if(m)m.style.display='flex'; const p=$('#loginPass'); if(p)p.focus(); }
+async function doLogin(){
+  const p=$('#loginPass').value.trim(); const err=$('#loginErr'); if(err)err.textContent='';
+  try{
+    const res=await fetch(API_BASE+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p})});
+    if(res.ok){ const j=await res.json(); localStorage.setItem('wb_token', j.token); const m=$('#loginMask'); if(m)m.style.display='none'; await initBackend(); }
+    else { if(err)err.textContent='口令错误，请重试'; }
+  }catch(e){ if(err)err.textContent='网络错误，请确认后端地址'; }
+}
+
+/* ---------- 顶部日期 ---------- */
+(function(){
+  const d=new Date(); const w=['日','一','二','三','四','五','六'][d.getDay()];
+  $('#topDate').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${w}`;
+})();
+
+/* ---------- Tab 切换 ---------- */
+function switchPage(p){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.page===p));
+  document.querySelectorAll('#bottombar a').forEach(a=>a.classList.toggle('active',a.dataset.page===p));
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.toggle('active',pg.id==='page-'+p));
+  if(p==='cal') renderCalendar();
+  if(p==='todo') renderTodos();
+  if(p==='en') renderEnglish();
+  if(p==='water') renderWater();
+  if(p==='quick') renderQuick();
+  if(p==='hr') renderPolicy();
+  if(p==='week') renderWeek();
+  if(p==='home') renderHome();
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchPage(t.dataset.page));
+document.querySelectorAll('#bottombar a').forEach(a=>a.onclick=()=>switchPage(a.dataset.page));
+
+/* ---------- 节假日数据（2026） ---------- */
+const HOLIDAYS = [
+  ['2026-01-01','2026-01-03','元旦'],
+  ['2026-02-15','2026-02-23','春节'],
+  ['2026-04-04','2026-04-06','清明节'],
+  ['2026-05-01','2026-05-05','劳动节'],
+  ['2026-06-19','2026-06-21','端午节'],
+  ['2026-09-25','2026-09-27','中秋节'],
+  ['2026-10-01','2026-10-07','国庆节'],
+];
+const MAKEUP = ['2026-01-04','2026-02-14','2026-02-28','2026-05-09','2026-09-20','2026-10-10'];
+function parseD(s){const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c);}
+function inRange(s){
+  for(const[h1,h2,name] of HOLIDAYS){ if(parseD(s)>=parseD(h1)&&parseD(s)<=parseD(h2)) return name; }
+  return null;
+}
+function dayType(d){
+  const s=dayKey(d); const wd=d.getDay();
+  if(inRange(s)) return {cls:'holiday',label:'法定节假日 · '+inRange(s)};
+  if(MAKEUP.includes(s)) return {cls:'makeup',label:'调休上班（周末补班）'};
+  if(wd===0||wd===6) return {cls:'rest',label:'周末休息'};
+  return {cls:'work',label:'工作日'};
+}
+
+/* ---------- 日历 ---------- */
+let calY, calM;
+function renderCalendar(){
+  const base = calY!==undefined ? new Date(calY,calM,1) : new Date();
+  if(calY===undefined){calY=base.getFullYear();calM=base.getMonth();}
+  $('#calMonth').textContent = calY+'年'+(calM+1)+'月';
+  const first=new Date(calY,calM,1); const startDow=first.getDay();
+  const daysInMonth=new Date(calY,calM+1,0).getDate();
+  const cells=[];
+  const prevDays=new Date(calY,calM,0).getDate();
+  for(let i=startDow-1;i>=0;i--) cells.push({d:new Date(calY,calM-1,prevDays-i),dim:true});
+  for(let i=1;i<=daysInMonth;i++) cells.push({d:new Date(calY,calM,i),dim:false});
+  while(cells.length%7!==0) cells.push({d:new Date(calY,calM+1,cells.length-daysInMonth-startDow+1),dim:true});
+  const td=todayStr();
+  $('#days').innerHTML = cells.map(c=>{
+    const s=dayKey(c.d); const t=dayType(c.d);
+    const isToday = !c.dim && s===td;
+    const label = c.dim?'': (t.cls==='holiday'?'休':t.cls==='makeup'?'班':t.cls==='rest'?'休':'');
+    return `<div class="day ${t.cls} ${isToday?'today':''} ${c.dim?'dim':''}" onclick="showDay('${s}')">
+      <div>${c.d.getDate()}</div><div class="t">${label}</div></div>`;
+  }).join('');
+}
+function shiftMonth(n){ calM+=n; if(calM<0){calM=11;calY--;} if(calM>11){calM=0;calY++;} renderCalendar(); }
+function goToday(){ calY=undefined; renderCalendar(); }
+function showDay(s){
+  const d=parseD(s); const t=dayType(d); const name=inRange(s);
+  const w=['日','一','二','三','四','五','六'][d.getDay()];
+  let html=`<div class="kv"><span>日期</span><b>${s} 星期${w}</b></div>
+    <div class="kv"><span>类型</span><span class="pill ${t.cls==='holiday'?'p-red':t.cls==='makeup'?'p-amber':'p-blue'}">${t.label}</span></div>`;
+  if(name) html+=`<div class="kv"><span>节日</span><b>${name}</b></div>`;
+  $('#dayDetail').innerHTML=html;
+}
+
+/* ---------- 待办 & 日志 ---------- */
+let todos = store.get('todos',[]);
+function saveTodos(){ store.set('todos',todos); }
+function addTodo(){
+  const v=$('#todoInput').value.trim(); if(!v)return;
+  todos.push({id:Date.now(),text:v,pri:$('#todoPri').value,done:false,date:todayStr()});
+  $('#todoInput').value=''; saveTodos(); renderTodos(); toast('已添加');
+}
+function toggleTodo(id){ const t=todos.find(x=>x.id===id); if(t){t.done=!t.done; saveTodos(); renderTodos();} }
+function delTodo(id){ todos=todos.filter(x=>x.id!==id); saveTodos(); renderTodos(); }
+function renderTodos(){
+  const active=todos.filter(t=>!t.done); const done=todos.filter(t=>t.done);
+  const prColor=p=>({普通:'p-blue',重要:'p-amber',紧急:'p-red'}[p]||'p-blue');
+  const row=t=>{
+    const pri = t.date===todayStr()? '' : `<span class="meta">· ${t.date}</span>`;
+    return `<div class="todo ${t.done?'done':''}">
+      <div class="chk" onclick="toggleTodo(${t.id})">${t.done?'✓':''}</div>
+      <div class="txt">${t.text}<div class="meta"><span class="pill ${prColor(t.pri)}">${t.pri}</span>${pri}</div></div>
+      <div class="del" onclick="delTodo(${t.id})">×</div></div>`;
+  };
+  $('#todoActive').innerHTML = active.length? active.map(row).join('') : '<div class="empty">暂无待办，享受轻松一天 🎉</div>';
+  $('#todoDone').innerHTML = done.length? done.map(row).join('') : '<div class="empty">还没有完成的任务</div>';
+}
+/* 日志 */
+const logKey=todayStr();
+$('#logDate').textContent=logKey;
+$('#logInput').value = store.get('log_'+logKey,'')||'';
+function saveLog(){ store.set('log_'+logKey, $('#logInput').value); $('#logSaved').textContent='✓ 已保存 '+new Date().toLocaleTimeString('zh-CN'); toast('日志已保存'); }
+
+/* ---------- 每日英语 ---------- */
+const EN = [
+  {en:"Could you send me the updated file?",zh:"可以把更新后的文件发我吗？",cat:"邮件",ex:"Could you send me the updated file by EOD?"},
+  {en:"Let's schedule a meeting.",zh:"我们安排个会议吧。",cat:"会议",ex:"Let's schedule a meeting for next Monday."},
+  {en:"I'll follow up on this.",zh:"我会跟进这件事。",cat:"办公",ex:"I'll follow up on this and keep you posted."},
+  {en:"Please find the attachment.",zh:"请查收附件。",cat:"邮件",ex:"Please find the attached report."},
+  {en:"What's our headcount this quarter?",zh:"本季度我们的员工人数是多少？",cat:"HR",ex:"What's our headcount this quarter?"},
+  {en:"Onboarding",zh:"入职 / 新员工融入",cat:"HR",ex:"The onboarding process takes two weeks."},
+  {en:"Annual leave",zh:"年假",cat:"HR",ex:"I'd like to apply for annual leave."},
+  {en:"Performance review",zh:"绩效考核",cat:"HR",ex:"The performance review is due next month."},
+  {en:"Could you clarify that?",zh:"能详细说明一下吗？",cat:"沟通",ex:"Could you clarify the deadline?"},
+  {en:"I'm on a tight deadline.",zh:"我时间很紧。",cat:"办公",ex:"I'm on a tight deadline, please prioritize."},
+  {en:"Let's touch base later.",zh:"我们晚点再沟通。",cat:"沟通",ex:"Let's touch base later this afternoon."},
+  {en:"Salary / Compensation",zh:"薪资 / 薪酬",cat:"HR",ex:"The salary range is competitive."},
+  {en:"Social insurance",zh:"社会保险",cat:"HR",ex:"We enroll staff in social insurance monthly."},
+  {en:"Housing fund",zh:"住房公积金",cat:"HR",ex:"The housing fund ratio is 12%."},
+  {en:"Probation period",zh:"试用期",cat:"HR",ex:"The probation period is three months."},
+  {en:"Please confirm receipt.",zh:"请确认收到。",cat:"邮件",ex:"Please confirm receipt of this email."},
+  {en:"I'll get back to you.",zh:"我稍后回复你。",cat:"沟通",ex:"I'll get back to you tomorrow."},
+  {en:"Could we reschedule?",zh:"能改期吗？",cat:"会议",ex:"Could we reschedule to Thursday?"},
+  {en:"Great job, team!",zh:"干得漂亮，团队！",cat:"办公",ex:"Great job, team! We hit the target."},
+  {en:"Let me loop you in.",zh:"我把你拉进（群/邮件）。",cat:"沟通",ex:"Let me loop you in on the thread."},
+  {en:"Overtime",zh:"加班",cat:"HR",ex:"Overtime needs manager approval."},
+  {en:"Payroll",zh:"工资单 / 发薪",cat:"HR",ex:"Payroll is processed on the 10th."},
+  {en:"Could you elaborate?",zh:"能展开讲讲吗？",cat:"沟通",ex:"Could you elaborate on the plan?"},
+  {en:"We're short-staffed.",zh:"我们人手不足。",cat:"HR",ex:"We're short-staffed this month."},
+  {en:"Action item",zh:"行动项 / 待办",cat:"会议",ex:"Action item: finish the draft by Fri."},
+  {en:"Let's align on this.",zh:"我们对此对齐一下。",cat:"沟通",ex:"Let's align on the priorities."},
+  {en:"Reminder",zh:"提醒",cat:"办公",ex:"Reminder: submit your timesheet today."},
+  {en:"I appreciate your help.",zh:"感谢你的帮助。",cat:"礼仪",ex:"I appreciate your help on this."},
+  {en:"Looking forward to…",zh:"期待…",cat:"邮件",ex:"Looking forward to your reply."},
+  {en:"Recruitment / Hiring",zh:"招聘",cat:"HR",ex:"Recruitment is ongoing for the role."},
+  {en:"Training session",zh:"培训课程",cat:"HR",ex:"A training session is scheduled Friday."},
+  {en:"Could you walk me through?",zh:"能带我过一遍吗？",cat:"沟通",ex:"Could you walk me through the process?"},
+  {en:"Let's call it a day.",zh:"今天就到这吧。",cat:"办公",ex:"It's late, let's call it a day."},
+  {en:"Bottom line",zh:"核心结论 / 底线",cat:"会议",ex:"The bottom line is we need more time."},
+  {en:"Please advise.",zh:"请告知 / 请指示。",cat:"邮件",ex:"Please advise on the next step."},
+  {en:"Termination",zh:"解除劳动合同",cat:"HR",ex:"Termination must follow the law."},
+  {en:"Benefits package",zh:"福利待遇包",cat:"HR",ex:"The benefits package includes insurance."},
+  {en:"Keep me updated.",zh:"随时告诉我进展。",cat:"沟通",ex:"Keep me updated on the progress."},
+  {en:"Let's circle back.",zh:"我们回头再谈。",cat:"会议",ex:"Let's circle back to this later."},
+];
+function dayOfYear(d){const start=new Date(d.getFullYear(),0,0);return Math.floor((d-start)/86400000);}
+function workdayOfYear(d){
+  let c=0; const cur=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const s=new Date(d.getFullYear(),0,1);
+  while(s<=cur){ if(dayType(s).cls==='work')c++; s.setDate(s.getDate()+1); }
+  return c;
+}
+function renderEnglish(){
+  const d=new Date();
+  const isWork = dayType(d).cls==='work';
+  // 仅工作日推送新内容；非工作日沿用上一工作日内容并提示暂停
+  const widx = Math.max(0, workdayOfYear(d) - (isWork?0:1));
+  const start = (widx*3)%EN.length;
+  const picks=[0,1,2].map(i=>EN[(start+i)%EN.length]);
+  const note = isWork? '' : `<div class="card"><div class="reminder">🌙 今日非工作日，英语学习暂停推送。以下为上一工作日内容，可复习。</div></div>`;
+  $('#enToday').innerHTML = note + picks.map((e,idx)=>`
+    <div class="en-card">
+      <div class="en">${idx+1}. ${e.en}</div>
+      <div class="zh">${e.zh}</div>
+      <div class="ex">“${e.ex}”</div>
+      <div class="foot">
+        <span class="pill p-purple">${e.cat}</span>
+        <span class="icon-btn" onclick="learnEn('${e.en.replace(/'/g,"\\'")}')">标记已学 ✓</span>
+      </div>
+    </div>`).join('');
+  // 词库
+  const lib = store.get('en_learned',[]);
+  $('#enCount').textContent=lib.length;
+  // 连续天数
+  const days = store.get('en_days',[]);
+  $('#enStreak').textContent = streakCount(days);
+  $('#enLib').innerHTML = lib.length? lib.slice().reverse().map(e=>{
+      const m=EN.find(x=>x.en===e); return m?`<div class="kv"><b>${m.en}</b><span class="sub">${m.zh}</span></div>`:'';
+    }).join('') : '<span class="sub">尚未积累，今天开始学习吧！</span>';
+}
+function learnEn(en){
+  let lib=store.get('en_learned',[]); if(!lib.includes(en)) lib.push(en);
+  store.set('en_learned',lib);
+  let days=store.get('en_days',[]); const t=todayStr(); if(!days.includes(t)) days.push(t);
+  store.set('en_days',days);
+  toast('已加入词库 📚'); renderEnglish();
+}
+function streakCount(days){
+  if(!days.length) return 0;
+  const set=new Set(days); let c=0; const d=new Date();
+  while(set.has(dayKey(d))){c++; d.setDate(d.getDate()-1);}
+  return c;
+}
+
+/* ---------- 政策速递 Feed ---------- */
+const POLICY_SEED = [
+  {id:'p1',date:'2026-08-24',tag:'重要',title:'北京住房公积金2026年度缴存比例 5%–12%',summary:'基数上限36348元、下限2540元（2026.7.1–2027.6.30）。',source:'北京住房公积金管理中心'},
+  {id:'p2',date:'2026-08-20',tag:'重要',title:'北京2026社保缴费基数 下限7270 / 上限36348',summary:'自2026年7月起执行，养老/失业/工伤/医保(含生育)同步；比例不变。',source:'京人社发〔2026〕7号'},
+  {id:'p3',date:'2026-01-12',tag:'新',title:'全国最低工资标准公布（截至2026.1.1）',summary:'北京月最低工资2540元、小时27.7元（全国小时最高）。',source:'人社部'},
+  {id:'p4',date:'2025-11-04',tag:'普通',title:'国务院2026年节假日安排',summary:'元旦3天、春节9天、劳动5天、国庆7天等，含调休上班日。',source:'国办发明电〔2025〕7号'},
+  {id:'p5',date:'2026-03-27',tag:'普通',title:'北京城乡居民基本养老保险缴费标准',summary:'2026年最低年缴费1000元、最高9000元。',source:'北京市人社局'},
+];
+function getAllPolicy(){
+  const user=store.get('policy_user',[]);
+  return POLICY_SEED.concat(user).sort((a,b)=> b.date.localeCompare(a.date));
+}
+function renderPolicy(){
+  const items=getAllPolicy();
+  const read=store.get('policy_read',{}); const t=todayStr();
+  let unread=0;
+  const feed=items.map(p=>{
+    const r=read[p.id]===t; if(!r && p.date<=t) unread++;
+    const tagCls={重要:'p-red',新:'p-green',普通:'p-blue'}[p.tag]||'p-blue';
+    return `<div class="kv" onclick="readPolicy('${p.id}')" style="cursor:pointer">
+      <div><b>${p.title}</b> <span class="pill ${tagCls}">${p.tag}</span>
+      <div class="sub">${p.summary}</div>
+      <div class="sub" style="margin-top:2px">📅 ${p.date} · ${p.source}${r?' · ✓已读':''}</div></div></div>`;
+  }).join('');
+  $('#policyFeed').innerHTML=feed;
+  $('#policyBanner').innerHTML = unread>0
+    ? `🔔 今日有 <b>${unread}</b> 条政策待查看，点击条目标记已读。`
+    : `✅ 政策已最新，暂无未读更新（共 ${items.length} 条）。`;
+}
+function readPolicy(id){ const read=store.get('policy_read',{}); read[id]=todayStr(); store.set('policy_read',read); renderPolicy(); }
+function addPolicy(){
+  const date=$('#pDate').value||todayStr();
+  const title=$('#pTitle').value.trim(); if(!title)return;
+  const user=store.get('policy_user',[]);
+  user.push({id:'u'+Date.now(),date,tag:$('#pTag').value,title,summary:$('#pSummary').value.trim(),source:$('#pSource').value.trim()||'手动添加'});
+  store.set('policy_user',user);
+  $('#pTitle').value='';$('#pSummary').value='';$('#pSource').value='';
+  renderPolicy(); toast('已添加政策');
+}
+function renderQuick(){
+  const d=new Date(); const w=['日','一','二','三','四','五','六'][d.getDay()];
+  $('#quickDate').textContent=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 星期${w} · 数据截至2026年，以官方最新文件为准`;
+}
+
+/* ---------- 周计划 & 周总结 ---------- */
+function weekStart(d){ const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const wd=x.getDay(); x.setDate(x.getDate()+(wd===0?-6:1-wd)); return x; }
+function weekEnd(d){ const s=weekStart(d); return new Date(s.getFullYear(),s.getMonth(),s.getDate()+6); }
+function weekKey(d){ return dayKey(weekStart(d)); }
+function fmtMd(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+function getWeekPlans(){ return store.get('weekplan_'+weekKey(new Date()),[]); }
+function setWeekPlans(arr){ store.set('weekplan_'+weekKey(new Date()),arr); }
+function addWeekPlan(){
+  const v=$('#weekPlanInput').value.trim(); if(!v)return;
+  const plans=getWeekPlans(); plans.push({id:Date.now(),text:v,done:false});
+  setWeekPlans(plans); $('#weekPlanInput').value=''; renderWeek(); toast('已添加');
+}
+function toggleWeekPlan(id){ const p=getWeekPlans(); const t=p.find(x=>x.id===id); if(t){t.done=!t.done; setWeekPlans(p); renderWeek();} }
+function delWeekPlan(id){ setWeekPlans(getWeekPlans().filter(x=>x.id!==id)); renderWeek(); }
+function renderWeek(){
+  const s=weekStart(new Date()); const e=weekEnd(new Date());
+  const z=n=>String(n).padStart(2,'0');
+  $('#weekRange').textContent=`${s.getFullYear()}-${z(s.getMonth()+1)}-${z(s.getDate())} ~ ${e.getFullYear()}-${z(e.getMonth()+1)}-${z(e.getDate())}`;
+  const plans=getWeekPlans();
+  if(!plans.length){ $('#weekPlanList').innerHTML='<div class="empty">本周还没制定计划，添加几条目标吧 🎯</div>'; $('#weekPlanStat').textContent=''; }
+  else{
+    $('#weekPlanList').innerHTML = plans.map(t=>`
+      <div class="todo ${t.done?'done':''}">
+        <div class="chk" onclick="toggleWeekPlan(${t.id})">${t.done?'✓':''}</div>
+        <div class="txt">${t.text}</div>
+        <div class="del" onclick="delWeekPlan(${t.id})">×</div>
+      </div>`).join('');
+    const done=plans.filter(t=>t.done).length;
+    $('#weekPlanStat').textContent=`本周计划完成进度：${done} / ${plans.length}${done===plans.length?' 🎉 全部完成':''}`;
+  }
+  renderWeekHistory();
+}
+function renderWeekHistory(){
+  const all=localStorage; const reps=[];
+  for(let i=0;i<all.length;i++){const k=all.key(i); if(k.startsWith('wb_weekreport_')){ try{reps.push({k,v:JSON.parse(all.getItem(k))});}catch(e){} }}
+  reps.sort((a,b)=>b.k.localeCompare(a.k));
+  if(!reps.length){ $('#weekHistory').innerHTML='<span class="sub">暂无历史周报，生成并保存后会出现在这里。</span>'; return; }
+  $('#weekHistory').innerHTML = reps.map(r=>{
+    const wk=r.k.replace('wb_weekreport_','');
+    return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px">
+      <div class="sub" style="margin-bottom:4px">📅 周起始 ${wk} · 保存于 ${r.v.savedAt||''}</div>
+      <div style="white-space:pre-wrap;font-size:13px;color:var(--ink)">${escapeHtml(r.v.text||'')}</div></div>`;
+  }).join('');
+}
+function genWeekSummary(){
+  const s=weekStart(new Date()); const e=weekEnd(new Date());
+  const wd=['日','一','二','三','四','五','六'];
+  // 每日工作日志
+  let logLines=[];
+  for(let i=0;i<7;i++){ const d=new Date(s.getFullYear(),s.getMonth(),s.getDate()+i); const k=dayKey(d); const txt=store.get('log_'+k,''); if(txt&&txt.trim()) logLines.push(`【${fmtMd(d)} 周${wd[d.getDay()]}】${txt.trim()}`); }
+  // 本周待办
+  const wkTodos=todos.filter(t=>{ const td=parseD(t.date); return td>=s && td<=e; });
+  const doneT=wkTodos.filter(t=>t.done).map(t=>`- ${t.text}（${t.pri}）`);
+  const actT=wkTodos.filter(t=>!t.done).map(t=>`- ${t.text}（${t.pri}）`);
+  // 周计划
+  const plans=getWeekPlans(); const doneP=plans.filter(t=>t.done);
+  const planLines=plans.length? plans.map(t=>`${t.done?'[✓]':'[ ]'} ${t.text}`).join('\n') : '（未制定）';
+  const sum=
+`【周工作总结】 ${dayKey(s)} ~ ${dayKey(e)}
+
+一、本周计划完成情况（${doneP.length}/${plans.length}）
+${planLines}
+
+二、每日工作记录
+${logLines.length? logLines.join('\n') : '（本周暂无工作日志记录）'}
+
+三、待办事项
+已完成（${doneT.length}）：
+${doneT.length? doneT.join('\n') : '（无）'}
+进行中（${actT.length}）：
+${actT.length? actT.join('\n') : '（无）'}
+
+四、下周计划（建议）
+（请补充）`;
+  $('#weekSummary').value=sum; $('#weekSaved').textContent=''; toast('已生成周总结 📝');
+}
+function copyWeekSummary(){ const v=$('#weekSummary').value; if(!v){toast('请先生成总结');return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(v).then(()=>toast('已复制 📋')).catch(()=>fallbackCopy()); } else fallbackCopy();
+  function fallbackCopy(){ const ta=$('#weekSummary'); ta.select(); try{document.execCommand('copy');toast('已复制 📋');}catch(e){toast('复制失败，请手动选择');} }
+}
+function saveWeekReport(){ const v=$('#weekSummary').value.trim(); if(!v){toast('请先生成总结');return;}
+  store.set('weekreport_'+weekKey(new Date()),{text:v,savedAt:new Date().toLocaleString('zh-CN')});
+  $('#weekSaved').textContent='✓ 周报已保存（'+new Date().toLocaleString('zh-CN')+'）'; renderWeekHistory(); toast('周报已保存'); }
+function escapeHtml(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ---------- 喝水 ---------- */
+const WATER_GOAL=1500;
+function getWater(dateStr){ const w=store.get('water',{}); return w[dateStr]||0; }
+function setWater(dateStr,v){ const w=store.get('water',{}); w[dateStr]=v; store.set('water',w); }
+function addWater(n){
+  const t=todayStr(); let cur=getWater(t)+n; if(cur>WATER_GOAL*2)cur=WATER_GOAL*2;
+  setWater(t,cur); renderWater(); toast('+'+n+'ml 💧');
+}
+function addWaterCustom(){ const v=parseInt($('#waterCustom').value||'0'); if(v>0){addWater(v);$('#waterCustom').value='';} }
+function resetWater(){ setWater(todayStr(),0); renderWater(); toast('已重置'); }
+function renderWater(){
+  const t=todayStr(); const cur=getWater(t);
+  $('#waterNow').textContent=cur;
+  const pct=Math.min(cur/WATER_GOAL,1);
+  const C=2*Math.PI*78; $('#ringFg').style.strokeDashoffset = C*(1-pct);
+  $('#ringFg').setAttribute('stroke', pct>=1?'#19b36b':'#2f6df0');
+  // 近7天
+  const cells=[]; const d=new Date();
+  for(let i=6;i>=0;i--){ const dd=new Date(); dd.setDate(dd.getDate()-i);
+    const k=dayKey(dd); const v=getWater(k);
+    const isT=k===t;
+    cells.push(`<div style="text-align:center;padding:8px 4px;border:1px solid ${isT?'var(--brand)':'var(--line)'};border-radius:10px;background:${isT?'var(--brand-soft)':'#fff'}">
+      <div style="font-size:11px;color:var(--sub)">${dd.getMonth()+1}/${dd.getDate()}</div>
+      <div style="font-size:14px;font-weight:700;color:${v>=WATER_GOAL?'var(--green)':'var(--brand)'}">${v}</div>
+      <div style="font-size:9px;color:var(--sub)">ml</div></div>`);
+  }
+  $('#waterWeek').innerHTML=cells.join('');
+}
+
+/* ---------- 数据导入导出 ---------- */
+function exportData(){
+  const data={todos, logs:{}, water:store.get('water',{}), en_learned:store.get('en_learned',[]), en_days:store.get('en_days',[]),
+    policy_user:store.get('policy_user',[]), policy_read:store.get('policy_read',{})};
+  // 收集日志 / 周计划 / 周报
+  const all=localStorage; for(let i=0;i<all.length;i++){const k=all.key(i);
+    if(k.startsWith('wb_log_')) data.logs[k.slice(6)]=JSON.parse(all.getItem(k));
+    if(k.startsWith('wb_weekplan_')) (data.weekplans=data.weekplans||{})[k.slice(12)]=JSON.parse(all.getItem(k));
+    if(k.startsWith('wb_weekreport_')) (data.weekreports=data.weekreports||{})[k.slice(14)]=JSON.parse(all.getItem(k));
+  }
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='workbench-'+todayStr()+'.json'; a.click(); toast('已导出');
+}
+function importData(e){
+  const f=e.target.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result);
+    if(d.todos)store.set('todos',d.todos);
+    if(d.water)store.set('water',d.water);
+    if(d.en_learned)store.set('en_learned',d.en_learned);
+    if(d.en_days)store.set('en_days',d.en_days);
+    if(d.logs)for(const k in d.logs)store.set(k,d.logs[k]);
+    if(d.weekplans)for(const k in d.weekplans)store.set('weekplan_'+k,d.weekplans[k]);
+    if(d.weekreports)for(const k in d.weekreports)store.set('weekreport_'+k,d.weekreports[k]);
+    todos=store.get('todos',[]);
+    toast('导入成功，刷新各模块'); renderTodos(); renderWater(); renderEnglish();
+  }catch(err){ toast('导入失败：格式错误'); } };
+  r.readAsText(f); e.target.value='';
+}
+
+/* ---------- 首页总览 ---------- */
+function renderHome(){
+  const d=new Date(); const w=['日','一','二','三','四','五','六'][d.getDay()];
+  const t=todayStr(); const h=d.getHours();
+  const greet=h<11?'早上好':h<14?'中午好':h<18?'下午好':'晚上好';
+  $('#homeGreet').textContent=`${greet}，${d.getMonth()+1}月${d.getDate()}日 星期${w}`;
+  const active=todos.filter(x=>!x.done).length, done=todos.filter(x=>x.done).length;
+  $('#homeTodo').textContent=`${active} 进行中 · ${done} 已完成`;
+  const wv=getWater(t);
+  $('#homeWater').textContent=`${wv} / ${WATER_GOAL} ml${wv>=WATER_GOAL?' ✅':''}`;
+  const wp=getWeekPlans(); const wpDone=wp.filter(x=>x.done).length;
+  $('#homeWeek').textContent=`${wpDone} / ${wp.length}${wp.length&&wpDone===wp.length?' 🎉':''}`;
+  $('#homeWeekBar').style.width=(wp.length?Math.round(wpDone/wp.length*100):0)+'%';
+  const items=getAllPolicy(); const read=store.get('policy_read',{}); let unread=0;
+  items.forEach(p=>{ if(read[p.id]!==t && p.date<=t) unread++; });
+  $('#homePolicy').textContent=unread?`${unread} 条待查看`:'已最新 ✓';
+  const days=store.get('en_days',[]); const lib=store.get('en_learned',[]);
+  $('#homeEn').textContent=`连续 ${streakCount(days)} 天 · 累计 ${lib.length} 条`;
+  const isWork=dayType(d).cls==='work';
+  const widx=Math.max(0,workdayOfYear(d)-(isWork?0:1));
+  const start=(widx*3)%EN.length;
+  $('#homeEnList').innerHTML=[0,1,2].map(i=>{const e=EN[(start+i)%EN.length];
+    return `<div style="padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px"><b style="color:var(--brand)">${e.en}</b> <span class="sub">${e.zh}</span></div>`;}).join('');
+  const at=todos.filter(x=>!x.done);
+  $('#homeTodoList').innerHTML=at.length? at.slice(0,5).map(x=>`<div style="padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px">• ${x.text} <span class="pill ${ ({普通:'p-blue',重要:'p-amber',紧急:'p-red'}[x.pri]||'p-blue') }">${x.pri}</span></div>`).join('') : '<div class="sub">暂无进行中的待办 🎉</div>';
+}
+
+/* ---------- 快捷记录浮窗 ---------- */
+function toggleFab(){ $('#fabMenu').classList.toggle('hidden'); }
+function quickTodo(){ switchPage('todo'); setTimeout(()=>$('#todoInput').focus(),60); }
+document.addEventListener('click',e=>{ const f=$('#fabMenu'); if(f&&!f.classList.contains('hidden')&&!e.target.closest('.fab')) f.classList.add('hidden'); });
+
+/* ---------- 饮水提醒 ---------- */
+let waterTimer=null;
+function startWaterReminder(){
+  const min=parseInt($('#remindInterval').value||'60'); if(min<5){toast('间隔至少5分钟');return;}
+  if('Notification' in window && Notification.permission!=='denied'){ Notification.requestPermission(); }
+  if(waterTimer) clearInterval(waterTimer);
+  waterTimer=setInterval(()=>{
+    const cur=getWater(todayStr());
+    const msg= cur>=WATER_GOAL?'今日饮水已达标，继续保持！💧':'该喝水啦 💧 已喝 '+cur+'/'+WATER_GOAL+'ml';
+    if('Notification' in window && Notification.permission==='granted'){ try{ new Notification('饮水提醒',{body:msg}); }catch(e){} }
+    toast(msg);
+  }, min*60*1000);
+  $('#remindStatus').textContent=`✅ 已开启，每 ${min} 分钟提醒一次。`; toast('饮水提醒已开启');
+}
+function stopWaterReminder(){ if(waterTimer){clearInterval(waterTimer);waterTimer=null;} $('#remindStatus').textContent='已停止提醒。'; toast('已停止'); }
+
+/* ---------- 工作区同步（目录句柄持久化 + 写入 JSON） ---------- */
+function _idbGet(k){return new Promise((res)=>{const r=indexedDB.open('wb_sync');r.onsuccess=e=>{try{const db=e.target.result;const tx=db.transaction('kv','readonly');const g=tx.objectStore('kv').get(k);g.onsuccess=()=>res(g.result||null);g.onerror=()=>res(null);}catch(_){res(null);}};r.onupgradeneeded=e=>{try{e.target.result.createObjectStore('kv');}catch(_){}};r.onerror=()=>res(null);});}
+function _idbSet(k,v){return new Promise((res)=>{const r=indexedDB.open('wb_sync');r.onsuccess=e=>{const db=e.target.result;const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>res();};r.onerror=()=>res();});}
+async function linkWorkspace(){
+  if(!('showDirectoryPicker' in window)){ toast('当前浏览器不支持自动同步，请改用导出/导入'); return; }
+  try{
+    const dir=await window.showDirectoryPicker();
+    _wsDir=dir; await _idbSet('dir',dir);
+    await _writeWorkspace(); toast('已关联工作区目录 ✅ 数据将自动同步');
+  }catch(err){ if(err&&err.name!=='AbortError') toast('关联失败：'+(err.message||err)); }
+}
+async function _loadWsDir(){ try{ _wsDir=await _idbGet('dir'); }catch(_){} }
+async function _writeWorkspace(){
+  if(!_wsDir) return;
+  const all={todos, water:store.get('water',{}), en_learned:store.get('en_learned',[]), en_days:store.get('en_days',[]), policy_user:store.get('policy_user',[]), policy_read:store.get('policy_read',{})};
+  const ls=localStorage;
+  for(let i=0;i<ls.length;i++){const k=ls.key(i);
+    if(k.startsWith('wb_log_')) all['log_'+k.slice(6)]=JSON.parse(ls.getItem(k));
+    if(k.startsWith('wb_weekplan_')) (all.weekplans=all.weekplans||{})[k.slice(12)]=JSON.parse(ls.getItem(k));
+    if(k.startsWith('wb_weekreport_')) (all.weekreports=all.weekreports||{})[k.slice(14)]=JSON.parse(ls.getItem(k));
+  }
+  const fh=await _wsDir.getFileHandle('workbench-data.json',{create:true});
+  const w=await fh.createWritable(); await w.write(JSON.stringify(all,null,2)); await w.close();
+}
+
+/* ---------- 初始化 ---------- */
+_loadWsDir().then(()=>{ if(_wsDir) toast('已关联工作区，数据自动同步中'); });
+initBackend();
+renderTodos();
+renderPolicy();
+renderHome();
+</script>
+</body>
+</html>
