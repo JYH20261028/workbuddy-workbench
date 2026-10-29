@@ -543,6 +543,8 @@ function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('sh
 /* ====== 跨设备同步后端 ====== */
 let API_BASE = (location.protocol==='http:'||location.protocol==='https:') ? '' : null; // 同源 API；可通过 sync-config.json 指定独立后端
 let BACKEND_OK=false;
+// 同步模式：'github' = 走 GitHub 接口（无需自建服务器）；'koyeb' = 同源 /api（Koyeb 等托管）
+let SYNC_MODE=null; let SYNC_CFG=null;
 function buildModules(){
   const mt=store.get('modtimes',{}); const mods={};
   const put=(name,value)=>{ mods[name]={updatedAt:mt[name]||0, value}; };
@@ -562,9 +564,44 @@ function buildModules(){
   put('logs', logs); put('weekplans', wps); put('weekreports', wrs);
   return mods;
 }
+/* ---- GitHub 后端适配（无服务器、纯 GitHub 接口同步）---- */
+function ghB64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
+function ghB64dec(b){ return decodeURIComponent(escape(atob(b.replace(/\s/g,'')))); }
+async function ghReq(path, opts){
+  const tok=localStorage.getItem('wb_token')||'';
+  const base=((SYNC_CFG&&SYNC_CFG.apiBase)||'https://api.github.com');
+  return fetch(base+path, Object.assign({headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'}}, opts||{}));
+}
+async function ghGet(){
+  const path='/repos/'+SYNC_CFG.repo+'/contents/'+SYNC_CFG.dataPath;
+  const res=await ghReq(path,{method:'GET'});
+  if(res.status===404) return {state:{rev:0,modules:{}}, sha:null};
+  if(!res.ok) throw new Error('gh get '+res.status);
+  const j=await res.json(); let state={rev:0,modules:{}};
+  try{ state=JSON.parse(ghB64dec(j.content)); }catch(e){}
+  return {state, sha:j.sha};
+}
+async function ghPut(state, sha){
+  const path='/repos/'+SYNC_CFG.repo+'/contents/'+SYNC_CFG.dataPath;
+  const body={message:'workbench sync', content:ghB64enc(JSON.stringify(state))};
+  if(sha) body.sha=sha;
+  const res=await ghReq(path,{method:'PUT', body:JSON.stringify(body)});
+  if(!res.ok) throw new Error('gh put '+res.status);
+  const j=await res.json(); return j.content?j.content.sha:null;
+}
+
 async function pushModules(){
   if(!BACKEND_OK) return;
   try{
+    if(SYNC_MODE==='github'){
+      const {state, sha}=await ghGet();
+      const cur=state.modules||{};
+      const inc=buildModules();
+      for(const k in inc){ const m=inc[k], ex=cur[k];
+        if(!ex || (m.updatedAt||0) >= (ex.updatedAt||0)) cur[k]=m; }
+      await ghPut({rev:(state.rev||0)+1, modules:cur}, sha);
+      applyTimestamps(cur); BACKEND_OK=true; return;
+    }
     const tok=localStorage.getItem('wb_token')||'';
     const res=await fetch(API_BASE+'/api/state',{method:'POST',headers:{'Content-Type':'application/json','x-wb-token':tok},
       body:JSON.stringify({modules:buildModules()})});
@@ -581,6 +618,16 @@ function applyTimestamps(mods){
 async function pullModules(){
   if(!BACKEND_OK) return;
   try{
+    if(SYNC_MODE==='github'){
+      const {state}=await ghGet();
+      const mods=state.modules||{}; const mt=store.get('modtimes',{});
+      let changed=false;
+      for(const k in mods){ const m=mods[k]; if(!m) continue;
+        if((m.updatedAt||0) > (mt[k]||0)){ applyModule(k,m.value); mt[k]=m.updatedAt; changed=true; } }
+      _storeSet('modtimes', mt);
+      if(changed) rerenderAll();
+      return;
+    }
     const tok=localStorage.getItem('wb_token')||'';
     const res=await fetch(API_BASE+'/api/state',{headers:{'x-wb-token':tok}}); if(!res.ok) return;
     const s=await res.json(); const mods=s.modules||{}; const mt=store.get('modtimes',{});
@@ -617,15 +664,27 @@ let _pollTimer=null;
 async function initBackend(){
   const stat=$('#syncStat');
   if(API_BASE===null){ BACKEND_OK=false; if(stat)stat.textContent='⚪ 本地'; return; }
-  // 读取 sync-config.json：若配置了独立后端地址，则启用远程登录+同步
-  let configured=false;
+  // 读取 sync-config.json：选择同步后端模式
   try{
     const c=await fetch('sync-config.json',{cache:'no-store'});
-    if(c.ok){ const j=await c.json(); if(j&&j.apiBase&&j.apiBase.trim()){ API_BASE=j.apiBase.trim().replace(/\/$/,''); configured=true; } }
+    if(c.ok){ const j=await c.json();
+      if(j&&j.mode==='github'&&j.repo&&j.dataPath){ SYNC_MODE='github'; SYNC_CFG=j; }
+      else if(j&&j.apiBase&&j.apiBase.trim()){ API_BASE=j.apiBase.trim().replace(/\/$/,''); }
+    }
   }catch(e){}
+  if(SYNC_MODE==='github'){
+    const tok=localStorage.getItem('wb_token')||'';
+    if(!tok){ showLogin(); return; }
+    try{
+      await ghGet(); // 验证令牌可用
+      BACKEND_OK=true;
+      if(stat){stat.textContent='🟢 已同步云端'; stat.style.cursor='pointer'; stat.title='点击退出登录'; stat.onclick=()=>{localStorage.removeItem('wb_token');location.reload();};}
+      await pullModules();
+    }catch(e){ BACKEND_OK=false; showLogin(); }
+    if(BACKEND_OK && !_pollTimer) _pollTimer=setInterval(pullModules, 15000);
+    return;
+  }
   if(API_BASE===''){ BACKEND_OK=false; if(stat)stat.textContent='⚪ 本地'; return; } // 静态托管且无配置后端
-  if(!configured){ BACKEND_OK=false; return; }
-  // 已配置远程后端 -> 需要登录
   const tok=localStorage.getItem('wb_token')||'';
   if(!tok){ showLogin(); return; }
   try{
@@ -635,10 +694,24 @@ async function initBackend(){
   }catch(e){ BACKEND_OK=false; }
   if(BACKEND_OK && !_pollTimer) _pollTimer=setInterval(pullModules, 15000);
 }
-function showLogin(){ const m=$('#loginMask'); if(m)m.style.display='flex'; const p=$('#loginPass'); if(p)p.focus(); }
+function showLogin(){
+  const sub=document.querySelector('.login-sub'); if(sub) sub.textContent = SYNC_MODE==='github' ? '粘贴你的 GitHub 令牌(PAT)以同步数据' : '输入访问口令，在手机 / 电脑间同步你的数据';
+  const ph=document.getElementById('loginPass'); if(ph) ph.placeholder = SYNC_MODE==='github' ? 'GitHub 令牌 (PAT)' : '访问口令';
+  const m=$('#loginMask'); if(m)m.style.display='flex'; const p=$('#loginPass'); if(p)p.focus();
+}
 async function doLogin(){
   const p=$('#loginPass').value.trim(); const err=$('#loginErr'); if(err)err.textContent='';
   try{
+    if(SYNC_MODE==='github'){
+      localStorage.setItem('wb_token', p);
+      let ok=true; try{ await ghGet(); }catch(e){ ok=false; }
+      if(!ok){ localStorage.removeItem('wb_token'); if(err)err.textContent='令牌无效或无权限，请重试'; return; }
+      const m=$('#loginMask'); if(m)m.style.display='none';
+      BACKEND_OK=true; const st=$('#syncStat'); if(st){st.textContent='🟢 已同步云端'; st.style.cursor='pointer'; st.title='点击退出登录'; st.onclick=()=>{localStorage.removeItem('wb_token');location.reload();};}
+      await pullModules();
+      if(!_pollTimer) _pollTimer=setInterval(pullModules, 15000);
+      return;
+    }
     const res=await fetch(API_BASE+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:p})});
     if(res.ok){ const j=await res.json(); localStorage.setItem('wb_token', j.token); const m=$('#loginMask'); if(m)m.style.display='none'; await initBackend(); }
     else { if(err)err.textContent='口令错误，请重试'; }
