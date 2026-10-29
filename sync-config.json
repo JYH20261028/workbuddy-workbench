@@ -1,0 +1,6 @@
+{
+  "mode": "github",
+  "repo": "JYH20261028/workbuddy-workbench",
+  "dataPath": "sync-data.json",
+  "apiBase": "https://api.github.com"
+}
